@@ -1,5 +1,5 @@
 #include "tasksys.h"
-
+#include <thread>
 
 IRunnable::~IRunnable() {}
 
@@ -59,6 +59,16 @@ TaskSystemParallelSpawn::TaskSystemParallelSpawn(int num_threads): ITaskSystem(n
 
 TaskSystemParallelSpawn::~TaskSystemParallelSpawn() {}
 
+void func(IRunnable *runnable, int threadidx, int amount_of_work_per_thread,
+          int num_total_tasks) {
+  for (int i = threadidx * amount_of_work_per_thread;
+       i < (threadidx + 1) * amount_of_work_per_thread; i++) {
+    if (i >= num_total_tasks)
+      break;
+    runnable->runTask(i, num_total_tasks);
+  }
+}
+
 void TaskSystemParallelSpawn::run(IRunnable* runnable, int num_total_tasks) {
 
 
@@ -68,8 +78,27 @@ void TaskSystemParallelSpawn::run(IRunnable* runnable, int num_total_tasks) {
     // tasks sequentially on the calling thread.
     //
 
-    for (int i = 0; i < num_total_tasks; i++) {
-        runnable->runTask(i, num_total_tasks);
+    /*for (int i = 0; i < num_total_tasks; i++) {
+      runnable->runTask(i, num_total_tasks);
+    }*/
+    // FIXME figure out a way to pass 'num_threads' here
+    // create num_total_tasks threads
+    int num_threads = 16; // hand-coded to 16 for now
+    std::vector<std::thread> thread_buf(num_threads);
+    // split whole work to num_threads parts
+    // assign the work to each thread & spawn them
+    // thread 0: does work from 0 to num_total_tasks / num_threads - 1
+    // thread 1: does work from num_total_tasks / num_threads to 2 *
+    //            num_total_tasks/num_threads -1
+    int amount_of_work_per_thread = num_total_tasks / num_threads;
+    for (int i = 0; i < num_threads; i += 1) {
+      // func: spawns indices, part of works to runnable->runTask(...)
+      thread_buf[i] = std::thread(func, runnable, i, amount_of_work_per_thread,
+                                  num_total_tasks);
+    }
+    // wait for return
+    for (int i = 0; i < num_threads; i++) {
+      thread_buf[i].join();
     }
 }
 
