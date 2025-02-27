@@ -49,20 +49,23 @@ const char* TaskSystemParallelSpawn::name() {
 }
 
 TaskSystemParallelSpawn::TaskSystemParallelSpawn(int num_threads): ITaskSystem(num_threads) {
-    //
-    // TODO: CS149 student implementations may decide to perform setup
-    // operations (such as thread pool construction) here.
-    // Implementations are free to add new class member variables
-    // (requiring changes to tasksys.h).
-    //
+  //
+  // TODO: CS149 student implementations may decide to perform setup
+  // operations (such as thread pool construction) here.
+  // Implementations are free to add new class member variables
+  // (requiring changes to tasksys.h).
+  //
+  // register num_threads to the class
+  TaskSystemParallelSpawn::num_threads = num_threads;
 }
 
 TaskSystemParallelSpawn::~TaskSystemParallelSpawn() {}
 
 void func(IRunnable *runnable, int threadidx, int amount_of_work_per_thread,
           int num_total_tasks) {
-  for (int i = threadidx * amount_of_work_per_thread;
-       i < (threadidx + 1) * amount_of_work_per_thread; i++) {
+  int start_work_idx = threadidx * amount_of_work_per_thread;
+  for (int i = start_work_idx; i < start_work_idx + amount_of_work_per_thread;
+       i++) {
     if (i >= num_total_tasks)
       break;
     runnable->runTask(i, num_total_tasks);
@@ -81,9 +84,7 @@ void TaskSystemParallelSpawn::run(IRunnable* runnable, int num_total_tasks) {
     /*for (int i = 0; i < num_total_tasks; i++) {
       runnable->runTask(i, num_total_tasks);
     }*/
-    // FIXME figure out a way to pass 'num_threads' here
-    // create num_total_tasks threads
-    int num_threads = 16; // hand-coded to 16 for now
+    int num_threads = TaskSystemParallelSpawn::num_threads;
     std::vector<std::thread> thread_buf(num_threads);
     // split whole work to num_threads parts
     // assign the work to each thread & spawn them
