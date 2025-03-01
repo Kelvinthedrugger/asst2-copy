@@ -85,7 +85,7 @@ void TaskSystemParallelSpawn::run(IRunnable* runnable, int num_total_tasks) {
       runnable->runTask(i, num_total_tasks);
     }*/
     int num_threads = TaskSystemParallelSpawn::num_threads;
-    std::vector<std::thread> thread_buf(num_threads);
+    std::thread thread_buf[num_threads];
     // split whole work to num_threads parts
     // assign the work to each thread & spawn them
     // thread 0: does work from 0 to num_total_tasks / num_threads - 1
@@ -131,12 +131,18 @@ TaskSystemParallelThreadPoolSpinning::TaskSystemParallelThreadPoolSpinning(int n
     // Implementations are free to add new class member variables
     // (requiring changes to tasksys.h).
     //
+    TaskSystemParallelThreadPoolSpinning::num_threads = num_threads;
 }
 
 TaskSystemParallelThreadPoolSpinning::~TaskSystemParallelThreadPoolSpinning() {}
 
-void TaskSystemParallelThreadPoolSpinning::run(IRunnable* runnable, int num_total_tasks) {
+void func2(IRunnable *runnable, int startidx, int bound) {
+  for (int i = startidx; i < bound; i++)
+    runnable->runTask(i, bound);
+}
 
+void TaskSystemParallelThreadPoolSpinning::run(IRunnable *runnable,
+                                               int num_total_tasks){
 
     //
     // TODO: CS149 students will modify the implementation of this
@@ -144,15 +150,33 @@ void TaskSystemParallelThreadPoolSpinning::run(IRunnable* runnable, int num_tota
     // tasks sequentially on the calling thread.
     //
 
-    for (int i = 0; i < num_total_tasks; i++) {
+    /*for (int i = 0; i < num_total_tasks; i++) {
         runnable->runTask(i, num_total_tasks);
+    }*/
+    // create threadpool
+    int num_threads = TaskSystemParallelThreadPoolSpinning::num_threads;
+    std::thread threadpool[num_threads];
+
+    // assign the work: we decide to do it statically
+    int work_to_do = num_total_tasks / num_threads;
+    for (int i = 0; i < num_threads; i++) {
+      // spawn threads
+      int thread_start_idx = i * work_to_do;
+      int bound = thread_start_idx + work_to_do;
+      if (bound >= num_total_tasks)
+        bound = num_total_tasks;
+      threadpool[i] = std::thread(/*runnable->runTask*/ func2, runnable,
+                                  thread_start_idx, bound);
     }
+    // join the threads
+    for (int i = 0; i < num_threads; i++)
+      threadpool[i].join();
 }
 
-TaskID TaskSystemParallelThreadPoolSpinning::runAsyncWithDeps(IRunnable* runnable, int num_total_tasks,
-                                                              const std::vector<TaskID>& deps) {
-    // You do not need to implement this method.
-    return 0;
+TaskID TaskSystemParallelThreadPoolSpinning::runAsyncWithDeps(
+    IRunnable *runnable, int num_total_tasks, const std::vector<TaskID> &deps) {
+  // You do not need to implement this method.
+  return 0;
 }
 
 void TaskSystemParallelThreadPoolSpinning::sync() {
