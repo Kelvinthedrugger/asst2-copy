@@ -169,6 +169,9 @@ void TaskSystemParallelThreadPoolSpinning::run(IRunnable *runnable,
                                   thread_start_idx, bound);
     }
     // join the threads
+    // this takes too long, need to read the doc carefully
+    // (are the previous threads in step1 released properly)
+    // anyways, read the docs & tutorial again
     for (int i = 0; i < num_threads; i++)
       threadpool[i].join();
 }
